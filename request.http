@@ -1,4 +1,32 @@
-POST url HTTP/1.1
-header name: header value
+###
+POST http://localhost:8080/user/create
+Content-Type: application/json
 
-content
+{
+    "name": "ab",
+    "email": "a@b.c"
+}
+###
+GET http://localhost:8080/user/getByEmail?email=a.b@c
+###
+GET http://localhost:8080/user/getAll
+
+###
+POST http://localhost:8080/author/create
+Content-Type: application/json
+
+{
+    "name": "test1"
+}
+###
+GET http://localhost:8080/author/getAll
+###
+GET http://localhost:8080/author/getByName?name=test1
+
+###
+POST http://localhost:8080/book/create
+Content-Type: application/json
+
+{
+    
+}
