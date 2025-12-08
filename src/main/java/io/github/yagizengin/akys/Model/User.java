@@ -46,6 +46,9 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Loan> loans = new ArrayList<>();
 
+    @OneToMany(mappedBy = "user")
+    private List<Reservation> reservations = new ArrayList<>();
+
     public User(){}
 
     public Long getId() {
@@ -109,6 +112,13 @@ public class User {
     }
     public void setLoans(List<Loan> loans) {
         this.loans = loans;
+    }
+
+    public List<Reservation> getReservations() {
+        return reservations;
+    }
+    public void setReservations(List<Reservation> reservations) {
+        this.reservations = reservations;
     }
 
     @PrePersist

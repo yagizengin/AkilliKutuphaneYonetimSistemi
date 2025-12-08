@@ -66,6 +66,9 @@ public class Book {
     @OneToMany(mappedBy = "book")
     private List<Loan> loans = new ArrayList<>();
 
+    @OneToMany(mappedBy = "book")
+    private List<Reservation> reservations = new ArrayList<>();
+
     public Book(){}
 
     public Long getId() {
@@ -150,5 +153,12 @@ public class Book {
     }
     public void setLoans(List<Loan> loans) {
         this.loans = loans;
+    }
+
+    public List<Reservation> getReservations() {
+        return reservations;
+    }
+    public void setReservations(List<Reservation> reservations) {
+        this.reservations = reservations;
     }
 }
