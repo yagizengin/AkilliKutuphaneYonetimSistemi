@@ -30,7 +30,6 @@ public class AuthorController {
         return authorRepository.save(author);
     }
     
-
     @GetMapping("/getAll")
     public List<Author> getAll() {
         return authorRepository.findAll();

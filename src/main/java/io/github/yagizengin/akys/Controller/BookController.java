@@ -25,12 +25,6 @@ public class BookController {
         this.bookRepository = bookRepository;
     }
 
-    // @PostMapping("/create")
-    // public Book create(@RequestBody Book book) {
-    //     return bookRepository.save(book);
-    // }
-    
-
     @GetMapping("/getAll")
     public List<Book> getAll() {
         return bookRepository.findAll();

@@ -39,7 +39,4 @@ public class UserController {
     public ResponseEntity<User> getByEmail(@RequestParam String email) {
         return userRepository.findByEmail(email).map(ResponseEntity::ok).orElseThrow(() -> new RuntimeException("User not found"));
     }
-    
-    
-    
 }

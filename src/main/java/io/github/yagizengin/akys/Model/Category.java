@@ -11,26 +11,19 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "authors")
-public class Author {
+@Table(name = "categories")
+public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
-    private String bio;
-
-    @ManyToMany(mappedBy = "authors")
+    @ManyToMany(mappedBy = "categories")
     private Set<Book> books = new HashSet<>();
 
-    public Author(){}
-
-    public Author(String name){
-        setName(name);
-    }
+    public Category() {}
 
     public Long getId() {
         return id;
@@ -46,13 +39,6 @@ public class Author {
         this.name = name;
     }
 
-    public String getBio() {
-        return bio;
-    }
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
-
     public Set<Book> getBooks() {
         return books;
     }
@@ -60,3 +46,4 @@ public class Author {
         this.books = books;
     }
 }
+
