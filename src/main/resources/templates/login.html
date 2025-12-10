@@ -4,32 +4,86 @@
     <meta charset="UTF-8">
     <title>Giriş</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/variables.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
     <style>
-        body { min-height: 100vh; background: linear-gradient(135deg,#0b1224,#111827); display:flex; align-items:center; justify-content:center; }
-        .card { background:#0f172a; border:1px solid rgba(255,255,255,0.08); color:#f8fafc; width:340px; }
-        .form-control { background:#0b1224; border:1px solid rgba(255,255,255,0.12); color:#f8fafc; }
-        .form-control:focus { border-color:#22c55e; box-shadow:none; }
-        .btn-primary { background:#22c55e; border:none; color:#0b1727; }
+        .auth-card { width: 340px; }
+        .alert { margin-top: 1rem; }
     </style>
 </head>
-<body>
-<div class="card p-4 shadow">
+<body class="auth-container">
+<div class="auth-card p-4 shadow">
     <h4 class="fw-semibold mb-3">Giriş</h4>
-    <form th:action="@{/login}" method="post" class="needs-validation" novalidate>
+    <form id="loginForm" class="needs-validation" novalidate>
         <div class="mb-3">
             <label class="form-label">Email</label>
-            <input class="form-control" type="text" name="username" required>
+            <input class="form-control" type="email" id="email" name="email" required>
         </div>
         <div class="mb-3">
             <label class="form-label">Parola</label>
-            <input class="form-control" type="password" name="password" required>
+            <input class="form-control" type="password" id="password" name="password" required>
         </div>
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
         <button class="btn btn-primary w-100" type="submit">Giriş</button>
     </form>
-    <div class="text-danger small mt-3" th:if="${param.error}">Hatalı giriş. Lütfen tekrar deneyin.</div>
-    <div class="text-success small mt-2" th:if="${param.logout}">Çıkış yapıldı.</div>
+    <div class="text-center mt-3">
+        <small class="text-light opacity-75">
+            Hesabınız yok mu? 
+            <a href="/register" style="color: #22c55e; text-decoration: none;">Kayıt ol</a>
+        </small>
+    </div>
+    <div id="errorMessage" class="alert alert-danger d-none mt-3" role="alert"></div>
+    <div id="successMessage" class="alert alert-success d-none mt-2" role="alert">Çıkış yapıldı.</div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('errorMessage');
+        const successDiv = document.getElementById('successMessage');
+        
+        errorDiv.classList.add('d-none');
+        successDiv.classList.add('d-none');
+        
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                const role = data.user.role;
+                if (role === 'ADMIN') {
+                    window.location.href = '/admin';
+                } else {
+                    window.location.href = '/member';
+                }
+            } else {
+                errorDiv.textContent = data.error || 'Hatalı giriş. Lütfen tekrar deneyin.';
+                errorDiv.classList.remove('d-none');
+            }
+        } catch (error) {
+            errorDiv.textContent = 'Bir hata oluştu. Lütfen tekrar deneyin.';
+            errorDiv.classList.remove('d-none');
+        }
+    });
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('logout')) {
+        document.getElementById('successMessage').textContent = 'Çıkış yapıldı.';
+        document.getElementById('successMessage').classList.remove('d-none');
+    }
+    if (urlParams.get('registered')) {
+        document.getElementById('successMessage').textContent = 'Kayıt başarılı! Giriş yapabilirsiniz.';
+        document.getElementById('successMessage').classList.remove('d-none');
+    }
+</script>
 </body>
 </html>

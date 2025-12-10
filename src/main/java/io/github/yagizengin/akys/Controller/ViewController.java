@@ -9,7 +9,10 @@ import io.github.yagizengin.akys.Repository.ReservationRepository;
 import io.github.yagizengin.akys.Repository.UserRepository;
 import java.security.Principal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,16 +25,19 @@ public class ViewController {
     private final UserRepository userRepository;
     private final LoanRepository loanRepository;
     private final ReservationRepository reservationRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public ViewController(
             BookRepository bookRepository,
             UserRepository userRepository,
             LoanRepository loanRepository,
-            ReservationRepository reservationRepository) {
+            ReservationRepository reservationRepository,
+            PasswordEncoder passwordEncoder) {
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
         this.loanRepository = loanRepository;
         this.reservationRepository = reservationRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping("/")
@@ -50,7 +56,7 @@ public class ViewController {
     public String member(Model model, Principal principal) {
         User me = currentUser(principal).orElseThrow();
         model.addAttribute("me", me);
-        model.addAttribute("loanCount", loanRepository.findAll().stream().filter(l -> l.getUser() != null && l.getUser().getId().equals(me.getId())).count());
+        model.addAttribute("loanCount", loanRepository.findByStatusIn(List.of(Loan.Status.ACTIVE, Loan.Status.OVERDUE)).stream().filter(l -> l.getUser() != null && l.getUser().getId().equals(me.getId())).count());
         model.addAttribute("reservationCount", reservationRepository.findAll().stream().filter(r -> r.getUser() != null && r.getUser().getId().equals(me.getId())).count());
         model.addAttribute("books", bookRepository.findAll());
         return "user/dashboard";
@@ -67,17 +73,97 @@ public class ViewController {
         return "login";
     }
 
+    @GetMapping("/register")
+    public String register() {
+        return "register";
+    }
+
+    @GetMapping("/logout")
+    public String logout(HttpServletResponse response) {
+        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("JWT_TOKEN", null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        return "redirect:/?logout";
+    }
+
     @GetMapping("/view/profile")
     public String profile(Model model, Principal principal) {
         User me = currentUser(principal).orElseThrow();
         model.addAttribute("me", me);
+        if (me.getCreatedAt() != null) {
+            java.time.format.DateTimeFormatter formatter = 
+                java.time.format.DateTimeFormatter.ofPattern("dd MMMM yyyy, HH:mm", 
+                    java.util.Locale.forLanguageTag("tr-TR"));
+            model.addAttribute("formattedCreatedAt", me.getCreatedAt().format(formatter));
+        }
+        if (me.getPhone() != null) {
+            model.addAttribute("formattedPhone", formatPhoneNumber(me.getPhone()));
+        }
         return "user/profile";
+    }
+    
+    private String formatPhoneNumber(String phone) {
+        if (phone == null || phone.isEmpty()) {
+            return null;
+        }
+        String digits = phone.replaceAll("\\D", "");
+        
+        if (digits.startsWith("90") && digits.length() == 12) {
+            digits = digits.substring(2);
+        } else if (digits.startsWith("0") && digits.length() == 11) {
+            digits = digits.substring(1);
+        }
+        
+        if (digits.length() == 10) {
+            return "+90 " + digits.substring(0, 3) + " " + digits.substring(3, 6) + " " + 
+                   digits.substring(6, 8) + " " + digits.substring(8);
+        }
+        
+        return phone;
+    }
+
+    @PostMapping("/view/profile/update")
+    public String updateProfile(
+            @RequestParam String fullName,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String password,
+            @RequestParam(required = false) String passwordConfirm,
+            Principal principal,
+            Model model) {
+        User me = currentUser(principal).orElseThrow();
+        
+        if (password != null && !password.isEmpty()) {
+            if (password.length() < 6) {
+                model.addAttribute("error", "Parola en az 6 karakter olmalıdır.");
+                model.addAttribute("me", me);
+                return "user/profile";
+            }
+            if (!password.equals(passwordConfirm)) {
+                model.addAttribute("error", "Parolalar eşleşmiyor.");
+                model.addAttribute("me", me);
+                return "user/profile";
+            }
+            me.setPassword(passwordEncoder.encode(password));
+        }
+        
+        me.setFullName(fullName);
+        me.setPhone(phone != null && !phone.isEmpty() ? phone : null);
+        
+        userRepository.save(me);
+        
+        return "redirect:/view/profile?success=true";
     }
 
     @GetMapping("/view/my-loans")
     public String myLoans(Model model, Principal principal) {
         User me = currentUser(principal).orElseThrow();
-        model.addAttribute("loans", loanRepository.findAll().stream().filter(l -> l.getUser() != null && l.getUser().getId().equals(me.getId())).toList());
+        model.addAttribute("loans", loanRepository.findAll().stream()
+            .filter(l -> l.getUser() != null && l.getUser().getId().equals(me.getId()))
+            .sorted((l1, l2) -> l2.getCheckoutDate().compareTo(l1.getCheckoutDate()))
+            .toList());
         return "user/my-loans";
     }
 

@@ -89,6 +89,48 @@ public class AdminController {
     public String createBook(@ModelAttribute Book book,
                              @RequestParam(required = false) Long authorId,
                              @RequestParam(required = false) Long categoryId) {
+        attachAuthorAndCategory(book, authorId, categoryId);
+        if (book.getAddedDate() == null) {
+            book.setAddedDate(LocalDate.now());
+        }
+        bookRepository.save(book);
+        return "redirect:/admin/books";
+    }
+
+    @PostMapping("/admin/books/update")
+    public String updateBook(@RequestParam Long id,
+                             @RequestParam String title,
+                             @RequestParam String isbn,
+                             @RequestParam(required = false) String description,
+                             @RequestParam(required = false) String coverImageUrl,
+                             @RequestParam int totalCopies,
+                             @RequestParam int availableCopies,
+                             @RequestParam(required = false) Long authorId,
+                             @RequestParam(required = false) Long categoryId) {
+        bookRepository.findById(id).ifPresent(b -> {
+            b.setTitle(title);
+            b.setIsbn(isbn);
+            b.setDescription(description);
+            b.setCoverImageUrl(coverImageUrl);
+            b.setTotalCopies(totalCopies);
+            b.setAvailableCopies(availableCopies);
+            if (authorId != null || categoryId != null) {
+                b.setAuthors(new HashSet<>());
+                b.setCategories(new HashSet<>());
+                attachAuthorAndCategory(b, authorId, categoryId);
+            }
+            bookRepository.save(b);
+        });
+        return "redirect:/admin/books";
+    }
+
+    @PostMapping("/admin/books/delete")
+    public String deleteBook(@RequestParam Long id) {
+        bookRepository.deleteById(id);
+        return "redirect:/admin/books";
+    }
+
+    private void attachAuthorAndCategory(Book book, Long authorId, Long categoryId) {
         if (authorId != null) {
             authorRepository.findById(authorId).ifPresent(author -> {
                 book.setAuthors(new HashSet<>());
@@ -101,11 +143,6 @@ public class AdminController {
                 book.getCategories().add(category);
             });
         }
-        if (book.getAddedDate() == null) {
-            book.setAddedDate(LocalDate.now());
-        }
-        bookRepository.save(book);
-        return "redirect:/admin/books";
     }
 
     @GetMapping("/admin/authors")
@@ -121,6 +158,24 @@ public class AdminController {
         return "redirect:/admin/authors";
     }
 
+    @PostMapping("/admin/authors/update")
+    public String updateAuthor(@RequestParam Long id,
+                               @RequestParam String name,
+                               @RequestParam(required = false) String bio) {
+        authorRepository.findById(id).ifPresent(a -> {
+            a.setName(name);
+            a.setBio(bio);
+            authorRepository.save(a);
+        });
+        return "redirect:/admin/authors";
+    }
+
+    @PostMapping("/admin/authors/delete")
+    public String deleteAuthor(@RequestParam Long id) {
+        authorRepository.deleteById(id);
+        return "redirect:/admin/authors";
+    }
+
     @GetMapping("/admin/categories")
     public String categories(Model model) {
         model.addAttribute("categories", categoryRepository.findAll());
@@ -131,6 +186,22 @@ public class AdminController {
     @PostMapping("/admin/categories")
     public String createCategory(@ModelAttribute Category category) {
         categoryRepository.save(category);
+        return "redirect:/admin/categories";
+    }
+
+    @PostMapping("/admin/categories/update")
+    public String updateCategory(@RequestParam Long id,
+                                 @RequestParam String name) {
+        categoryRepository.findById(id).ifPresent(c -> {
+            c.setName(name);
+            categoryRepository.save(c);
+        });
+        return "redirect:/admin/categories";
+    }
+
+    @PostMapping("/admin/categories/delete")
+    public String deleteCategory(@RequestParam Long id) {
+        categoryRepository.deleteById(id);
         return "redirect:/admin/categories";
     }
 
@@ -149,6 +220,34 @@ public class AdminController {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
         userRepository.save(user);
+        return "redirect:/admin/users";
+    }
+
+    @PostMapping("/admin/users/update")
+    public String updateUser(@RequestParam Long id,
+                             @RequestParam String fullName,
+                             @RequestParam String email,
+                             @RequestParam(required = false) String phone,
+                             @RequestParam User.Role role,
+                             @RequestParam User.AccountStatus accountStatus,
+                             @RequestParam(required = false) String password) {
+        userRepository.findById(id).ifPresent(u -> {
+            u.setFullName(fullName);
+            u.setEmail(email);
+            u.setPhone((phone != null && !phone.isBlank()) ? phone : null);
+            u.setRole(role);
+            u.setAccountStatus(accountStatus);
+            if (password != null && !password.isBlank()) {
+                u.setPassword(passwordEncoder.encode(password));
+            }
+            userRepository.save(u);
+        });
+        return "redirect:/admin/users";
+    }
+
+    @PostMapping("/admin/users/delete")
+    public String deleteUser(@RequestParam Long id) {
+        userRepository.deleteById(id);
         return "redirect:/admin/users";
     }
 
@@ -178,6 +277,32 @@ public class AdminController {
         return "redirect:/admin/loans";
     }
 
+    @PostMapping("/admin/loans/update")
+    public String updateLoan(@RequestParam Long id,
+                             @RequestParam Long userId,
+                             @RequestParam Long bookId,
+                             @RequestParam LocalDate checkoutDate,
+                             @RequestParam LocalDate dueDate,
+                             @RequestParam(required = false) LocalDate returnDate,
+                             @RequestParam Loan.Status status) {
+        loanRepository.findById(id).ifPresent(l -> {
+            userRepository.findById(userId).ifPresent(l::setUser);
+            bookRepository.findById(bookId).ifPresent(l::setBook);
+            l.setCheckoutDate(checkoutDate);
+            l.setDueDate(dueDate);
+            l.setReturnDate(returnDate);
+            l.setStatus(status);
+            loanRepository.save(l);
+        });
+        return "redirect:/admin/loans";
+    }
+
+    @PostMapping("/admin/loans/delete")
+    public String deleteLoan(@RequestParam Long id) {
+        loanRepository.deleteById(id);
+        return "redirect:/admin/loans";
+    }
+
     @GetMapping("/admin/reservations")
     public String reservations(Model model) {
         model.addAttribute("reservations", reservationRepository.findAll());
@@ -198,6 +323,28 @@ public class AdminController {
         reservation.setReservationDate(reservationDate);
         reservation.setStatus(status);
         reservationRepository.save(reservation);
+        return "redirect:/admin/reservations";
+    }
+
+    @PostMapping("/admin/reservations/update")
+    public String updateReservation(@RequestParam Long id,
+                                    @RequestParam Long userId,
+                                    @RequestParam Long bookId,
+                                    @RequestParam LocalDate reservationDate,
+                                    @RequestParam Reservation.Status status) {
+        reservationRepository.findById(id).ifPresent(r -> {
+            userRepository.findById(userId).ifPresent(r::setUser);
+            bookRepository.findById(bookId).ifPresent(r::setBook);
+            r.setReservationDate(reservationDate);
+            r.setStatus(status);
+            reservationRepository.save(r);
+        });
+        return "redirect:/admin/reservations";
+    }
+
+    @PostMapping("/admin/reservations/delete")
+    public String deleteReservation(@RequestParam Long id) {
+        reservationRepository.deleteById(id);
         return "redirect:/admin/reservations";
     }
 

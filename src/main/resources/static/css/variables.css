@@ -1,0 +1,9 @@
+:root {
+    --primary: #22c55e;
+    --primary-dark: #16a34a;
+    --bg-dark: #0b1224;
+    --bg-card: #0f172a;
+    --text-light: #e5e7eb;
+    --border: rgba(255,255,255,0.08);
+}
+

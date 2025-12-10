@@ -5,6 +5,10 @@
     <title>Cezalar</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <style>
+        .filter-bar { display:flex; gap:.75rem; flex-wrap:wrap; margin-bottom:1rem; }
+        .inline-actions { display:flex; gap:4px; }
+    </style>
 </head>
 <body class="hold-transition sidebar-mini">
 <div class="wrapper">
@@ -75,7 +79,6 @@
                                             <option th:each="s : ${fineStatuses}" th:value="${s}" th:text="${s}"></option>
                                         </select>
                                     </div>
-                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                                     <button class="btn btn-primary btn-block" type="submit">Kaydet</button>
                                 </form>
                             </div>
@@ -85,18 +88,61 @@
                         <div class="card card-dark card-outline">
                             <div class="card-body">
                                 <h5 class="card-title mb-3">Ceza Listesi</h5>
+                                <div class="filter-bar">
+                                    <div class="input-group" style="max-width:320px;">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input id="searchInput" type="text" class="form-control" placeholder="Ödünç ID veya neden ara">
+                                    </div>
+                                    <div class="input-group" style="max-width:200px;">
+                                        <span class="input-group-text"><i class="fas fa-list-ol"></i></span>
+                                        <select id="pageSize" class="form-select">
+                                            <option value="10">10 satır</option>
+                                            <option value="25">25 satır</option>
+                                            <option value="50">50 satır</option>
+                                            <option value="100">100 satır</option>
+                                            <option value="all">Tümü</option>
+                                        </select>
+                                    </div>
+                                </div>
                                 <div class="table-responsive">
-                                    <table class="table table-striped table-dark table-hover">
+                                    <table class="table table-striped table-dark table-hover" id="finesTable">
                                         <thead>
-                                        <tr><th>ID</th><th>Ödünç</th><th>Tutar</th><th>Neden</th><th>Durum</th></tr>
+                                        <tr><th>ID</th><th>Ödünç</th><th>Tutar</th><th>Neden</th><th>Durum</th><th>Aksiyon</th></tr>
                                         </thead>
                                         <tbody>
-                                        <tr th:each="f : ${fines}">
+                                        <tr th:each="f : ${fines}"
+                                            th:attr="data-loan=${f.loan != null ? f.loan.id : ''}, data-reason=${f.reason}">
                                             <td th:text="${f.id}"></td>
-                                            <td th:text="${f.loan != null ? f.loan.id : ''}"></td>
-                                            <td th:text="${f.amount}"></td>
-                                            <td th:text="${f.reason}"></td>
-                                            <td th:text="${f.paymentStatus}"></td>
+                                            <td>
+                                                <form class="inline-form" method="post" action="/admin/fines/update">
+                                                    <input type="hidden" name="id" th:value="${f.id}">
+                                                    <select class="form-control form-control-sm mb-1" name="loanId" required>
+                                                        <option value="">Seçiniz</option>
+                                                        <option th:each="l : ${loans}" th:value="${l.id}" th:selected="${f.loan != null && f.loan.id == l.id}"
+                                                                th:text="${'Loan #' + l.id + ' - ' + (l.user != null ? l.user.fullName : '')}"></option>
+                                                    </select>
+                                            </td>
+                                            <td>
+                                                    <input class="form-control form-control-sm" type="number" step="0.01" name="amount" th:value="${f.amount}" required>
+                                            </td>
+                                            <td>
+                                                    <input class="form-control form-control-sm" type="text" name="reason" th:value="${f.reason}" required>
+                                            </td>
+                                            <td>
+                                                <select class="form-control form-control-sm" name="paymentStatus">
+                                                    <option th:each="s : ${fineStatuses}" th:value="${s}" th:selected="${f.paymentStatus == s}" th:text="${s}"></option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <div class="inline-actions">
+                                                    <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-save"></i></button>
+                                                </form>
+                                                    <form method="post" action="/admin/fines/delete" onsubmit="return confirm('Silinsin mi?');">
+                                                        <input type="hidden" name="id" th:value="${f.id}">
+                                                        <button class="btn btn-sm btn-danger" type="submit"><i class="fas fa-trash"></i></button>
+                                                    </form>
+                                                </div>
+                                            </td>
                                         </tr>
                                         </tbody>
                                     </table>
@@ -112,6 +158,29 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+<script>
+    const searchInput = document.getElementById('searchInput');
+    const pageSize = document.getElementById('pageSize');
+    const tbody = document.querySelector('#finesTable tbody');
+    function filterRows(){
+        const term=(searchInput.value||'').toLowerCase();
+        const rows=Array.from(tbody.querySelectorAll('tr'));
+        let filtered=rows;
+        if(term){
+            filtered=rows.filter(r=>{
+                const loan=(r.getAttribute('data-loan')||'').toLowerCase();
+                const reason=(r.getAttribute('data-reason')||'').toLowerCase();
+                return loan.includes(term)||reason.includes(term);
+            });
+        }
+        const size=pageSize.value==='all'?filtered.length:parseInt(pageSize.value||'10',10);
+        rows.forEach(r=>r.style.display='none');
+        filtered.slice(0,size).forEach(r=>r.style.display='');
+    }
+    searchInput.addEventListener('input', filterRows);
+    pageSize.addEventListener('change', filterRows);
+    filterRows();
+</script>
 </body>
 </html>
 
