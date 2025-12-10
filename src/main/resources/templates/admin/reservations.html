@@ -5,10 +5,7 @@
     <title>Rezervasyonlar</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-    <style>
-        .filter-bar { display:flex; gap:.75rem; flex-wrap:wrap; margin-bottom:1rem; }
-        .inline-actions { display:flex; gap:4px; }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
 </head>
 <body class="hold-transition sidebar-mini">
 <div class="wrapper">
@@ -50,6 +47,20 @@
         </div>
         <section class="content">
             <div class="container-fluid">
+                <div th:if="${param.success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span th:if="${param.success[0] == 'accepted'}">Rezervasyon kabul edildi ve ödünç kaydı oluşturuldu.</span>
+                    <span th:if="${param.success[0] == 'rejected'}">Rezervasyon reddedildi.</span>
+                </div>
+                <div th:if="${param.error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <span th:if="${param.error[0] == 'notfound'}">Rezervasyon bulunamadı.</span>
+                    <span th:if="${param.error[0] == 'notpending'}">Bu rezervasyon bekleyen durumda değil.</span>
+                    <span th:if="${param.error[0] == 'notavailable'}">Kitap şu anda uygun değil.</span>
+                    <span th:if="${param.error[0] == 'maxloans'}">Kullanıcının zaten 5 aktif ödüncü var.</span>
+                    <span th:if="${param.error[0] == 'duplicate'}">Kullanıcının bu kitap için zaten aktif ödüncü var.</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
                 <div class="row">
                     <div class="col-lg-4">
                         <div class="card card-primary card-outline">
@@ -89,14 +100,22 @@
                     <div class="col-lg-8">
                         <div class="card card-dark card-outline">
                             <div class="card-body">
-                                <h5 class="card-title mb-3">Rezervasyon Listesi</h5>
                                 <div class="filter-bar">
-                                    <div class="input-group" style="max-width:320px;">
-                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-search me-1"></i>Ara</label>
                                         <input id="searchInput" type="text" class="form-control" placeholder="Kullanıcı veya kitap ara">
                                     </div>
-                                    <div class="input-group" style="max-width:200px;">
-                                        <span class="input-group-text"><i class="fas fa-list-ol"></i></span>
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-filter me-1"></i>Durum</label>
+                                        <select id="statusFilter" class="form-select">
+                                            <option value="all">Tüm Durumlar</option>
+                                            <option value="PENDING" selected>Sadece Bekleyen</option>
+                                            <option value="FULFILLED">Kabul Edilen</option>
+                                            <option value="CANCELLED">İptal Edilen</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-list-ol me-1"></i>Sayfa Boyutu</label>
                                         <select id="pageSize" class="form-select">
                                             <option value="10">10 satır</option>
                                             <option value="25">25 satır</option>
@@ -113,35 +132,40 @@
                                         </thead>
                                         <tbody>
                                         <tr th:each="r : ${reservations}"
-                                            th:attr="data-user=${r.user != null ? r.user.fullName : ''}, data-book=${r.book != null ? r.book.title : ''}">
+                                            th:attr="data-user=${r.user != null ? r.user.fullName : ''}, data-book=${r.book != null ? r.book.title : ''}, data-status=${r.status.name()}">
                                             <td th:text="${r.id}"></td>
                                             <td style="min-width:220px;">
-                                                <form class="inline-form" method="post" action="/admin/reservations/update">
-                                                    <input type="hidden" name="id" th:value="${r.id}">
-                                                    <small>Kullanıcı</small>
-                                                    <select class="form-control form-control-sm mb-1" name="userId" required>
-                                                        <option value="">Seçiniz</option>
-                                                        <option th:each="u : ${users}" th:value="${u.id}" th:selected="${r.user != null && r.user.id == u.id}" th:text="${u.fullName}"></option>
-                                                    </select>
-                                                    <small>Kitap</small>
-                                                    <select class="form-control form-control-sm mb-1" name="bookId" required>
-                                                        <option value="">Seçiniz</option>
-                                                        <option th:each="b : ${books}" th:value="${b.id}" th:selected="${r.book != null && r.book.id == b.id}" th:text="${b.title}"></option>
-                                                    </select>
+                                                <div>
+                                                    <small class="text-muted d-block">Kullanıcı</small>
+                                                    <span th:text="${r.user != null ? r.user.fullName : '—'}"></span>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <small class="text-muted d-block">Kitap</small>
+                                                    <span th:text="${r.book != null ? r.book.title : '—'}"></span>
+                                                </div>
                                             </td>
                                             <td style="min-width:180px;">
-                                                    <small>Tarih</small>
-                                                    <input class="form-control form-control-sm mb-1" type="date" name="reservationDate" th:value="${r.reservationDate}" required>
+                                                <small class="text-muted d-block">Tarih</small>
+                                                <span th:text="${r.reservationDate}"></span>
                                             </td>
                                             <td>
-                                                <select class="form-control form-control-sm" name="status">
-                                                    <option th:each="s : ${reservationStatuses}" th:value="${s}" th:selected="${r.status == s}" th:text="${s}"></option>
-                                                </select>
+                                                <span th:class="${r.status.name() == 'PENDING' ? 'badge bg-warning' : r.status.name() == 'FULFILLED' ? 'badge bg-success' : 'badge bg-secondary'}"
+                                                      th:text="${r.status.name() == 'PENDING' ? 'Bekleyen' : r.status.name() == 'FULFILLED' ? 'Kabul Edildi' : 'İptal Edildi'}"></span>
                                             </td>
                                             <td>
                                                 <div class="inline-actions">
-                                                    <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-save"></i></button>
-                                                </form>
+                                                    <form th:if="${r.status.name() == 'PENDING'}" method="post" action="/admin/reservations/accept" class="d-inline">
+                                                        <input type="hidden" name="id" th:value="${r.id}">
+                                                        <button class="btn btn-sm btn-success" type="submit" title="Rezervasyonu kabul et ve ödünç oluştur">
+                                                            <i class="fas fa-check"></i> Kabul Et
+                                                        </button>
+                                                    </form>
+                                                    <form th:if="${r.status.name() == 'PENDING'}" method="post" action="/admin/reservations/reject" class="d-inline" onsubmit="return confirm('Rezervasyonu reddetmek istediğinize emin misiniz?');">
+                                                        <input type="hidden" name="id" th:value="${r.id}">
+                                                        <button class="btn btn-sm btn-warning" type="submit" title="Rezervasyonu reddet">
+                                                            <i class="fas fa-times"></i> Reddet
+                                                        </button>
+                                                    </form>
                                                     <form method="post" action="/admin/reservations/delete" onsubmit="return confirm('Silinsin mi?');">
                                                         <input type="hidden" name="id" th:value="${r.id}">
                                                         <button class="btn btn-sm btn-danger" type="submit"><i class="fas fa-trash"></i></button>
@@ -165,17 +189,25 @@
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 <script>
     const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
     const pageSize = document.getElementById('pageSize');
     const tbody = document.querySelector('#reservationsTable tbody');
     function filterRows(){
         const term=(searchInput.value||'').toLowerCase();
+        const statusValue=statusFilter.value;
         const rows=Array.from(tbody.querySelectorAll('tr'));
         let filtered=rows;
         if(term){
-            filtered=rows.filter(r=>{
+            filtered=filtered.filter(r=>{
                 const u=(r.getAttribute('data-user')||'').toLowerCase();
                 const b=(r.getAttribute('data-book')||'').toLowerCase();
                 return u.includes(term)||b.includes(term);
+            });
+        }
+        if(statusValue!=='all'){
+            filtered=filtered.filter(r=>{
+                const status=r.getAttribute('data-status');
+                return status===statusValue;
             });
         }
         const size=pageSize.value==='all'?filtered.length:parseInt(pageSize.value||'10',10);
@@ -183,6 +215,7 @@
         filtered.slice(0,size).forEach(r=>r.style.display='');
     }
     searchInput.addEventListener('input', filterRows);
+    statusFilter.addEventListener('change', filterRows);
     pageSize.addEventListener('change', filterRows);
     filterRows();
 </script>

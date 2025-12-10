@@ -5,6 +5,7 @@
     <title>Kitaplar - Admin</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
 </head>
 <body class="hold-transition sidebar-mini">
 <div class="wrapper">
@@ -109,15 +110,22 @@
                     <div class="col-lg-8">
                         <div class="card card-dark card-outline">
                             <div class="card-body">
-                                <h5 class="card-title mb-3">Katalog</h5>
 
-                                <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 0.75rem;">
-                                    <div class="input-group" style="max-width:320px;">
-                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <div class="filter-bar">
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-search me-1"></i>Ara</label>
                                         <input id="searchInput" type="text" class="form-control" placeholder="Başlık, ISBN, yazar, kategori ara">
                                     </div>
-                                    <div class="input-group" style="max-width:200px;">
-                                        <span class="input-group-text"><i class="fas fa-list-ol"></i></span>
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-filter me-1"></i>Uygunluk</label>
+                                        <select id="availabilityFilter" class="form-select">
+                                            <option value="all">Tüm Kitaplar</option>
+                                            <option value="available">Sadece Uygun</option>
+                                            <option value="unavailable">Uygun Değil</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-list-ol me-1"></i>Sayfa Boyutu</label>
                                         <select id="pageSize" class="form-select">
                                             <option value="10">10 satır</option>
                                             <option value="25">25 satır</option>
@@ -142,7 +150,7 @@
                                         </thead>
                                         <tbody>
                                         <tr th:each="b : ${books}"
-                                            th:attr="data-title=${b.title}, data-isbn=${b.isbn}, data-authors=${#strings.listJoin(b.authors.![name], ', ')}, data-categories=${#strings.listJoin(b.categories.![name], ', ')}">
+                                            th:attr="data-title=${b.title}, data-isbn=${b.isbn}, data-authors=${#strings.listJoin(b.authors.![name], ', ')}, data-categories=${#strings.listJoin(b.categories.![name], ', ')}, data-cover-image-url=${b.coverImageUrl != null ? b.coverImageUrl : ''}, data-available=${b.availableCopies > 0}">
                                             <td th:text="${b.id}"></td>
                                             <td style="min-width:220px;">
                                                 <form class="inline-form" method="post" action="/admin/books/update">
@@ -207,6 +215,47 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+<script>
+    const searchInput = document.getElementById('searchInput');
+    const availabilityFilter = document.getElementById('availabilityFilter');
+    const pageSize = document.getElementById('pageSize');
+    const tbody = document.querySelector('#booksTable tbody');
+    
+    function filterRows() {
+        const term = (searchInput.value || '').toLowerCase();
+        const availabilityValue = availabilityFilter.value;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        let filtered = rows;
+        
+        if (term) {
+            filtered = filtered.filter(r => {
+                const title = (r.getAttribute('data-title') || '').toLowerCase();
+                const isbn = (r.getAttribute('data-isbn') || '').toLowerCase();
+                const authors = (r.getAttribute('data-authors') || '').toLowerCase();
+                const categories = (r.getAttribute('data-categories') || '').toLowerCase();
+                const coverImageUrl = (r.getAttribute('data-cover-image-url') || '').toLowerCase();
+                return title.includes(term) || isbn.includes(term) || authors.includes(term) || categories.includes(term) || coverImageUrl.includes(term);
+            });
+        }
+        
+        if (availabilityValue !== 'all') {
+            filtered = filtered.filter(r => {
+                const isAvailable = r.getAttribute('data-available') === 'true';
+                return availabilityValue === 'available' ? isAvailable : !isAvailable;
+            });
+        }
+        
+        const size = pageSize.value === 'all' ? filtered.length : parseInt(pageSize.value || '10', 10);
+        
+        rows.forEach(r => r.style.display = 'none');
+        filtered.slice(0, size).forEach(r => r.style.display = '');
+    }
+    
+    searchInput.addEventListener('input', filterRows);
+    availabilityFilter.addEventListener('change', filterRows);
+    pageSize.addEventListener('change', filterRows);
+    filterRows();
+</script>
 </body>
 </html>
 

@@ -5,9 +5,8 @@
     <title>Kullanıcılar</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
     <style>
-        .filter-bar { display:flex; gap:.75rem; flex-wrap:wrap; margin-bottom:1rem; }
-        .inline-actions { display:flex; gap:4px; }
         .inline-form small { color: rgba(255,255,255,0.7); display:block; }
     </style>
 </head>
@@ -94,14 +93,29 @@
                     <div class="col-lg-8">
                         <div class="card card-dark card-outline">
                             <div class="card-body">
-                                <h5 class="card-title mb-3">Kullanıcı Listesi</h5>
                                 <div class="filter-bar">
-                                    <div class="input-group" style="max-width:320px;">
-                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-search me-1"></i>Ara</label>
                                         <input id="searchInput" type="text" class="form-control" placeholder="Email, ad soyad veya rol ara">
                                     </div>
-                                    <div class="input-group" style="max-width:200px;">
-                                        <span class="input-group-text"><i class="fas fa-list-ol"></i></span>
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-user-tag me-1"></i>Rol</label>
+                                        <select id="roleFilter" class="form-select">
+                                            <option value="all">Tüm Roller</option>
+                                            <option value="ADMIN">Admin</option>
+                                            <option value="MEMBER">Üye</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-user-shield me-1"></i>Hesap Durumu</label>
+                                        <select id="statusFilter" class="form-select">
+                                            <option value="all">Tüm Durumlar</option>
+                                            <option value="ACTIVE">Aktif</option>
+                                            <option value="BLOCKED">Engellenmiş</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-list-ol me-1"></i>Sayfa Boyutu</label>
                                         <select id="pageSize" class="form-select">
                                             <option value="10">10 satır</option>
                                             <option value="25">25 satır</option>
@@ -118,7 +132,7 @@
                                         </thead>
                                         <tbody>
                                         <tr th:each="u : ${users}"
-                                            th:attr="data-email=${u.email}, data-name=${u.fullName}, data-role=${u.role}">
+                                            th:attr="data-email=${u.email}, data-name=${u.fullName}, data-role=${u.role.name()}, data-account-status=${u.accountStatus.name()}">
                                             <td th:text="${u.id}"></td>
                                             <td style="min-width:220px;">
                                                 <form class="inline-form" method="post" action="/admin/users/update">
@@ -169,18 +183,34 @@
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 <script>
     const searchInput = document.getElementById('searchInput');
+    const roleFilter = document.getElementById('roleFilter');
+    const statusFilter = document.getElementById('statusFilter');
     const pageSize = document.getElementById('pageSize');
     const tbody = document.querySelector('#usersTable tbody');
     function filterRows(){
         const term=(searchInput.value||'').toLowerCase();
+        const roleValue=roleFilter.value;
+        const statusValue=statusFilter.value;
         const rows=Array.from(tbody.querySelectorAll('tr'));
         let filtered=rows;
         if(term){
-            filtered=rows.filter(r=>{
+            filtered=filtered.filter(r=>{
                 const e=(r.getAttribute('data-email')||'').toLowerCase();
                 const n=(r.getAttribute('data-name')||'').toLowerCase();
                 const rl=(r.getAttribute('data-role')||'').toLowerCase();
                 return e.includes(term)||n.includes(term)||rl.includes(term);
+            });
+        }
+        if(roleValue!=='all'){
+            filtered=filtered.filter(r=>{
+                const role=r.getAttribute('data-role');
+                return role===roleValue;
+            });
+        }
+        if(statusValue!=='all'){
+            filtered=filtered.filter(r=>{
+                const status=r.getAttribute('data-account-status');
+                return status===statusValue;
             });
         }
         const size=pageSize.value==='all'?filtered.length:parseInt(pageSize.value||'10',10);
@@ -188,6 +218,8 @@
         filtered.slice(0,size).forEach(r=>r.style.display='');
     }
     searchInput.addEventListener('input', filterRows);
+    roleFilter.addEventListener('change', filterRows);
+    statusFilter.addEventListener('change', filterRows);
     pageSize.addEventListener('change', filterRows);
     filterRows();
 </script>

@@ -7,6 +7,7 @@ import io.github.yagizengin.akys.Model.Fine;
 import io.github.yagizengin.akys.Model.Loan;
 import io.github.yagizengin.akys.Model.Reservation;
 import io.github.yagizengin.akys.Model.User;
+import java.util.List;
 import io.github.yagizengin.akys.Repository.AuthorRepository;
 import io.github.yagizengin.akys.Repository.BookRepository;
 import io.github.yagizengin.akys.Repository.CategoryRepository;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+
 
 @Controller
 public class AdminController {
@@ -342,10 +344,66 @@ public class AdminController {
         return "redirect:/admin/reservations";
     }
 
+    @PostMapping("/admin/reservations/reject")
+    public String rejectReservation(@RequestParam Long id) {
+        Optional<Reservation> reservationOpt = reservationRepository.findById(id);
+        if (reservationOpt.isEmpty()) {
+            return "redirect:/admin/reservations?error=notfound";
+        }
+        
+        Reservation reservation = reservationOpt.get();
+        
+        if (reservation.getStatus() != Reservation.Status.PENDING) {
+            return "redirect:/admin/reservations?error=notpending";
+        }
+        
+        reservation.setStatus(Reservation.Status.CANCELLED);
+        reservationRepository.save(reservation);
+        
+        return "redirect:/admin/reservations?success=rejected";
+    }
+
     @PostMapping("/admin/reservations/delete")
     public String deleteReservation(@RequestParam Long id) {
         reservationRepository.deleteById(id);
         return "redirect:/admin/reservations";
+    }
+
+    @PostMapping("/admin/reservations/accept")
+    public String acceptReservation(@RequestParam Long id) {
+        Optional<Reservation> reservationOpt = reservationRepository.findById(id);
+        if (reservationOpt.isEmpty()) {
+            return "redirect:/admin/reservations?error=notfound";
+        }
+        
+        Reservation reservation = reservationOpt.get();
+        
+        if (reservation.getStatus() != Reservation.Status.PENDING) {
+            return "redirect:/admin/reservations?error=notpending";
+        }
+        
+        User user = reservation.getUser();
+        Book book = reservation.getBook();
+        
+        if (book.getAvailableCopies() <= 0) {
+            return "redirect:/admin/reservations?error=notavailable";
+        }
+        
+        List<Loan.Status> activeStatuses = List.of(Loan.Status.ACTIVE, Loan.Status.OVERDUE);
+        List<Loan> activeLoans = loanRepository.findByUserAndStatusIn(user, activeStatuses);
+        if (activeLoans.size() >= 5) {
+            return "redirect:/admin/reservations?error=maxloans";
+        }
+        
+        Optional<Loan> existingLoan = loanRepository.findByUserAndBookAndStatusIn(user, book, activeStatuses);
+        if (existingLoan.isPresent()) {
+            return "redirect:/admin/reservations?error=duplicate";
+        }
+        
+        reservation.setStatus(Reservation.Status.FULFILLED);
+        reservationRepository.save(reservation);
+        
+        return "redirect:/admin/reservations?success=accepted";
     }
 
     @GetMapping("/admin/fines")

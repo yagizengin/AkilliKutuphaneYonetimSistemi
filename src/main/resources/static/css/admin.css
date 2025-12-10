@@ -1,0 +1,58 @@
+/* Admin pages common styles */
+
+/* Filter bar styles */
+.filter-bar { 
+    background: #212529;
+    padding: 1rem; 
+    border-radius: 8px; 
+    margin-bottom: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-size: 0.875rem;
+    color: #e5e7eb !important;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.filter-group .form-control,
+.filter-group .form-select {
+    border-radius: 6px;
+    background-color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    color: #000 !important;
+}
+
+.filter-group .form-control::placeholder {
+    color: #9ca3af !important;
+}
+
+.filter-group .form-control:focus,
+.filter-group .form-select:focus {
+    background-color: #fff !important;
+    border-color: #22c55e !important;
+    color: #000 !important;
+    box-shadow: 0 0 0 0.2rem rgba(34, 197, 94, 0.25);
+}
+
+.filter-group .form-control option,
+.filter-group .form-select option {
+    background-color: #fff !important;
+    color: #000 !important;
+}
+
+.inline-actions { 
+    display: flex; 
+    gap: 4px; 
+}
+

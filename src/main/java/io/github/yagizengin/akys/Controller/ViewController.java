@@ -2,6 +2,7 @@ package io.github.yagizengin.akys.Controller;
 
 import io.github.yagizengin.akys.Model.Book;
 import io.github.yagizengin.akys.Model.Loan;
+import io.github.yagizengin.akys.Model.Reservation;
 import io.github.yagizengin.akys.Model.User;
 import io.github.yagizengin.akys.Repository.BookRepository;
 import io.github.yagizengin.akys.Repository.LoanRepository;
@@ -9,6 +10,9 @@ import io.github.yagizengin.akys.Repository.ReservationRepository;
 import io.github.yagizengin.akys.Repository.UserRepository;
 import java.security.Principal;
 import java.time.LocalDate;
+import java.math.BigDecimal;
+import io.github.yagizengin.akys.Repository.FineRepository;
+import io.github.yagizengin.akys.Model.Fine;
 import java.util.List;
 import java.util.Optional;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,6 +28,7 @@ public class ViewController {
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final LoanRepository loanRepository;
+    private final FineRepository fineRepository;
     private final ReservationRepository reservationRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -31,11 +36,13 @@ public class ViewController {
             BookRepository bookRepository,
             UserRepository userRepository,
             LoanRepository loanRepository,
+            FineRepository fineRepository,
             ReservationRepository reservationRepository,
             PasswordEncoder passwordEncoder) {
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
         this.loanRepository = loanRepository;
+        this.fineRepository = fineRepository;
         this.reservationRepository = reservationRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -164,6 +171,14 @@ public class ViewController {
             .filter(l -> l.getUser() != null && l.getUser().getId().equals(me.getId()))
             .sorted((l1, l2) -> l2.getCheckoutDate().compareTo(l1.getCheckoutDate()))
             .toList());
+
+        var unpaidFines = fineRepository.findByLoan_UserAndPaymentStatus(me, Fine.PaymentStatus.UNPAID);
+        BigDecimal unpaidTotal = unpaidFines.stream()
+            .map(Fine::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        model.addAttribute("unpaidFinesTotal", unpaidTotal);
+        model.addAttribute("unpaidFinesCount", unpaidFines.size());
         return "user/my-loans";
     }
 
@@ -182,19 +197,36 @@ public class ViewController {
             return "redirect:/view/books?error=notfound";
         }
         Book book = bookOpt.get();
-        if (book.getAvailableCopies() <= 0) {
-            return "redirect:/view/books?error=notavailable";
+        
+        List<Loan.Status> activeStatuses = List.of(Loan.Status.ACTIVE, Loan.Status.OVERDUE);
+        List<Loan> activeLoans = loanRepository.findByUserAndStatusIn(me, activeStatuses);
+        if (activeLoans.size() >= 5) {
+            return "redirect:/view/books?error=maxloans";
         }
-        Loan loan = new Loan();
-        loan.setUser(me);
-        loan.setBook(book);
-        loan.setCheckoutDate(LocalDate.now());
-        loan.setDueDate(LocalDate.now().plusDays(14));
-        loan.setStatus(Loan.Status.ACTIVE);
-        loanRepository.save(loan);
-        book.setAvailableCopies(book.getAvailableCopies() - 1);
-        bookRepository.save(book);
-        return "redirect:/view/my-loans";
+        
+        Optional<Loan> existingLoan = loanRepository.findByUserAndBookAndStatusIn(me, book, activeStatuses);
+        if (existingLoan.isPresent()) {
+            return "redirect:/view/books?error=duplicate";
+        }
+        
+        Optional<Reservation> existingReservation = reservationRepository.findByUserAndBookAndStatus(me, book, Reservation.Status.PENDING);
+        if (existingReservation.isPresent()) {
+            return "redirect:/view/books?error=duplicatereservation";
+        }
+        
+        List<Reservation> pendingReservations = reservationRepository.findByUserAndStatus(me, Reservation.Status.PENDING);
+        if (pendingReservations.size() >= 5) {
+            return "redirect:/view/books?error=maxreservations";
+        }
+        
+        Reservation reservation = new Reservation();
+        reservation.setUser(me);
+        reservation.setBook(book);
+        reservation.setReservationDate(LocalDate.now());
+        reservation.setStatus(Reservation.Status.PENDING);
+        reservationRepository.save(reservation);
+        
+        return "redirect:/view/my-reservations?success=reserved";
     }
 
     @PostMapping("/view/return")
@@ -219,6 +251,18 @@ public class ViewController {
             }
         }
         return "redirect:/view/my-loans";
+    }
+
+    @PostMapping("/view/pay-fines")
+    public String payFines(Principal principal) {
+        User me = currentUser(principal).orElseThrow();
+        var unpaidFines = fineRepository.findByLoan_UserAndPaymentStatus(me, Fine.PaymentStatus.UNPAID);
+        if (unpaidFines.isEmpty()) {
+            return "redirect:/view/my-loans?info=nofines";
+        }
+        unpaidFines.forEach(f -> f.setPaymentStatus(Fine.PaymentStatus.PAID));
+        fineRepository.saveAll(unpaidFines);
+        return "redirect:/view/my-loans?success=paid";
     }
 
     private Optional<User> currentUser(Principal principal) {
