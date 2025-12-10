@@ -36,6 +36,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+            .logout(logout -> logout.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login", "/api/auth/logout", "/api/auth/register").permitAll()
                 .requestMatchers("/login", "/register", "/logout", "/css/**", "/js/**", "/images/**", "/").permitAll()
