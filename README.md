@@ -2,7 +2,7 @@
 
 Modern ve kullanıcı dostu bir kütüphane yönetim sistemi. Bu proje ile kütüphane işlemlerinizi dijital ortamda kolayca yönetebilirsiniz.
 
-![Screenshot](docs/screenshots/homepage.png)
+![Screenshot](src/main/resources/static/docs/screenshots/homepage.jpeg)
 
 ## 📋 İçindekiler
 
@@ -129,22 +129,22 @@ Sistem ilk kurulumda aşağıdaki varsayılan kullanıcıyı içerir:
 ## 📸 Ekran Görüntüleri
 
 ### Ana Sayfa
-![Ana Sayfa](docs/screenshots/homepage.jpeg)
+![Ana Sayfa](src/main/resources/static/docs/screenshots/homepage.jpeg)
 
 ### Giriş Sayfası
-![Giriş](docs/screenshots/login.jpeg)
+![Giriş](src/main/resources/static/docs/screenshots/login.jpeg)
 
 ### Kullanıcı Paneli
-![Kullanıcı Paneli](docs/screenshots/user-dashboard.jpeg)
+![Kullanıcı Paneli](src/main/resources/static/docs/screenshots/user-dashboard.jpeg)
 
 ### Kitap Listesi
-![Kitap Listesi](docs/screenshots/books.jpeg)
+![Kitap Listesi](src/main/resources/static/docs/screenshots/books.jpeg)
 
 ### Admin Paneli
-![Admin Paneli](docs/screenshots/admin-dashboard.jpeg)
+![Admin Paneli](src/main/resources/static/docs/screenshots/admin-dashboard.jpeg)
 
 ### Ödünç İşlemleri
-![Ödünç İşlemleri](docs/screenshots/loans.jpeg)
+![Ödünç İşlemleri](src/main/resources/static/docs/screenshots/loans.jpeg)
 
 
 <div align="center">
