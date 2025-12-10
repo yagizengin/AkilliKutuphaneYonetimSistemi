@@ -271,5 +271,11 @@ public class ViewController {
         }
         return userRepository.findByEmail(principal.getName());
     }
+
+    @GetMapping("/overview")
+    public String overview() {
+        return "overview";
+    }
+    
 }
 

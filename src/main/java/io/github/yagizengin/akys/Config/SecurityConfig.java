@@ -39,7 +39,7 @@ public class SecurityConfig {
             .logout(logout -> logout.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login", "/api/auth/logout", "/api/auth/register").permitAll()
-                .requestMatchers("/login", "/register", "/logout", "/css/**", "/js/**", "/images/**", "/").permitAll()
+                .requestMatchers("/login", "/register", "/logout", "/css/**", "/js/**", "/images/**", "/docs/**", "/", "/overview").permitAll()
                 .requestMatchers("/member").hasAnyRole("ADMIN", "MEMBER")
                 .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
                 .requestMatchers("/view/books", "/view/profile", "/view/my-loans", "/view/my-reservations", "/view/borrow", "/view/return")
