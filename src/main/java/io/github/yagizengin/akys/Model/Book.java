@@ -63,10 +63,10 @@ public class Book {
     )
     private Set<Category> categories = new HashSet<>();
 
-    @OneToMany(mappedBy = "book")
+    @OneToMany(mappedBy = "book", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
     private List<Loan> loans = new ArrayList<>();
 
-    @OneToMany(mappedBy = "book")
+    @OneToMany(mappedBy = "book", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
     private List<Reservation> reservations = new ArrayList<>();
 
     public Book(){}

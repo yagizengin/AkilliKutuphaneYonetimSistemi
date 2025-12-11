@@ -1,5 +1,6 @@
 package io.github.yagizengin.akys.Model;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,8 +10,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "loans")
@@ -39,6 +43,9 @@ public class Loan {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status;
+
+    @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Fine> fines = new ArrayList<>();
 
     public Loan() {}
 
@@ -89,6 +96,13 @@ public class Loan {
     }
     public void setStatus(Status status) {
         this.status = status;
+    }
+
+    public List<Fine> getFines() {
+        return fines;
+    }
+    public void setFines(List<Fine> fines) {
+        this.fines = fines;
     }
 
     public enum Status {

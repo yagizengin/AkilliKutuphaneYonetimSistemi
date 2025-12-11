@@ -13,20 +13,14 @@ import java.util.function.Function;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLongForHS256Algorithm}")
+    @Value("${jwt.secret:2422f13695eda0756c5183cfccea7d69308435cd0da7eeff697c95e407c548b0}")
     private String secret;
 
     @Value("${jwt.expiration:86400000}")
     private long expiration;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = secret.getBytes();
-        if (keyBytes.length < 32) {
-            byte[] paddedKey = new byte[32];
-            System.arraycopy(keyBytes, 0, paddedKey, 0, Math.min(keyBytes.length, 32));
-            return Keys.hmacShaKeyFor(paddedKey);
-        }
-        return Keys.hmacShaKeyFor(keyBytes);
+        return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
     public String generateToken(String email, String role) {
@@ -69,8 +63,7 @@ public class JwtTokenProvider {
 
     public Boolean validateToken(String token) {
         try {
-            Claims claims = getAllClaimsFromToken(token);
-            return !claims.getExpiration().before(new Date());
+            return !getAllClaimsFromToken(token).getExpiration().before(new Date());
         } catch (Exception e) {
             return false;
         }

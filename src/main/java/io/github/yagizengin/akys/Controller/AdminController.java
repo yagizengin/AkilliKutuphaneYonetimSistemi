@@ -109,26 +109,28 @@ public class AdminController {
                              @RequestParam int availableCopies,
                              @RequestParam(required = false) Long authorId,
                              @RequestParam(required = false) Long categoryId) {
-        bookRepository.findById(id).ifPresent(b -> {
-            b.setTitle(title);
-            b.setIsbn(isbn);
-            b.setDescription(description);
-            b.setCoverImageUrl(coverImageUrl);
-            b.setTotalCopies(totalCopies);
-            b.setAvailableCopies(availableCopies);
-            if (authorId != null || categoryId != null) {
-                b.setAuthors(new HashSet<>());
-                b.setCategories(new HashSet<>());
-                attachAuthorAndCategory(b, authorId, categoryId);
-            }
-            bookRepository.save(b);
+        bookRepository.findById(id).ifPresent(book -> {
+            book.setTitle(title);
+            book.setIsbn(isbn);
+            book.setDescription(description);
+            book.setCoverImageUrl(coverImageUrl);
+            book.setTotalCopies(totalCopies);
+            book.setAvailableCopies(availableCopies);
+            book.setAuthors(new HashSet<>());
+            book.setCategories(new HashSet<>());
+            attachAuthorAndCategory(book, authorId, categoryId);
+            bookRepository.save(book);
         });
         return "redirect:/admin/books";
     }
 
     @PostMapping("/admin/books/delete")
     public String deleteBook(@RequestParam Long id) {
-        bookRepository.deleteById(id);
+        bookRepository.findById(id).ifPresent(book -> {
+            book.getAuthors().clear();
+            book.getCategories().clear();
+            bookRepository.deleteById(id);
+        });
         return "redirect:/admin/books";
     }
 
@@ -164,17 +166,20 @@ public class AdminController {
     public String updateAuthor(@RequestParam Long id,
                                @RequestParam String name,
                                @RequestParam(required = false) String bio) {
-        authorRepository.findById(id).ifPresent(a -> {
-            a.setName(name);
-            a.setBio(bio);
-            authorRepository.save(a);
+        authorRepository.findById(id).ifPresent(author -> {
+            author.setName(name);
+            author.setBio(bio);
+            authorRepository.save(author);
         });
         return "redirect:/admin/authors";
     }
 
     @PostMapping("/admin/authors/delete")
     public String deleteAuthor(@RequestParam Long id) {
-        authorRepository.deleteById(id);
+        authorRepository.findById(id).ifPresent(author -> {
+            author.getBooks().forEach(book -> book.getAuthors().remove(author));
+            authorRepository.deleteById(id);
+        });
         return "redirect:/admin/authors";
     }
 
@@ -194,16 +199,19 @@ public class AdminController {
     @PostMapping("/admin/categories/update")
     public String updateCategory(@RequestParam Long id,
                                  @RequestParam String name) {
-        categoryRepository.findById(id).ifPresent(c -> {
-            c.setName(name);
-            categoryRepository.save(c);
+        categoryRepository.findById(id).ifPresent(category -> {
+            category.setName(name);
+            categoryRepository.save(category);
         });
         return "redirect:/admin/categories";
     }
 
     @PostMapping("/admin/categories/delete")
     public String deleteCategory(@RequestParam Long id) {
-        categoryRepository.deleteById(id);
+        categoryRepository.findById(id).ifPresent(category -> {
+            category.getBooks().forEach(book -> book.getCategories().remove(category));
+            categoryRepository.deleteById(id);
+        });
         return "redirect:/admin/categories";
     }
 
@@ -233,16 +241,16 @@ public class AdminController {
                              @RequestParam User.Role role,
                              @RequestParam User.AccountStatus accountStatus,
                              @RequestParam(required = false) String password) {
-        userRepository.findById(id).ifPresent(u -> {
-            u.setFullName(fullName);
-            u.setEmail(email);
-            u.setPhone((phone != null && !phone.isBlank()) ? phone : null);
-            u.setRole(role);
-            u.setAccountStatus(accountStatus);
+        userRepository.findById(id).ifPresent(user -> {
+            user.setFullName(fullName);
+            user.setEmail(email);
+            user.setPhone(phone != null && !phone.isBlank() ? phone : null);
+            user.setRole(role);
+            user.setAccountStatus(accountStatus);
             if (password != null && !password.isBlank()) {
-                u.setPassword(passwordEncoder.encode(password));
+                user.setPassword(passwordEncoder.encode(password));
             }
-            userRepository.save(u);
+            userRepository.save(user);
         });
         return "redirect:/admin/users";
     }
@@ -287,14 +295,14 @@ public class AdminController {
                              @RequestParam LocalDate dueDate,
                              @RequestParam(required = false) LocalDate returnDate,
                              @RequestParam Loan.Status status) {
-        loanRepository.findById(id).ifPresent(l -> {
-            userRepository.findById(userId).ifPresent(l::setUser);
-            bookRepository.findById(bookId).ifPresent(l::setBook);
-            l.setCheckoutDate(checkoutDate);
-            l.setDueDate(dueDate);
-            l.setReturnDate(returnDate);
-            l.setStatus(status);
-            loanRepository.save(l);
+        loanRepository.findById(id).ifPresent(loan -> {
+            userRepository.findById(userId).ifPresent(loan::setUser);
+            bookRepository.findById(bookId).ifPresent(loan::setBook);
+            loan.setCheckoutDate(checkoutDate);
+            loan.setDueDate(dueDate);
+            loan.setReturnDate(returnDate);
+            loan.setStatus(status);
+            loanRepository.save(loan);
         });
         return "redirect:/admin/loans";
     }
@@ -334,33 +342,26 @@ public class AdminController {
                                     @RequestParam Long bookId,
                                     @RequestParam LocalDate reservationDate,
                                     @RequestParam Reservation.Status status) {
-        reservationRepository.findById(id).ifPresent(r -> {
-            userRepository.findById(userId).ifPresent(r::setUser);
-            bookRepository.findById(bookId).ifPresent(r::setBook);
-            r.setReservationDate(reservationDate);
-            r.setStatus(status);
-            reservationRepository.save(r);
+        reservationRepository.findById(id).ifPresent(reservation -> {
+            userRepository.findById(userId).ifPresent(reservation::setUser);
+            bookRepository.findById(bookId).ifPresent(reservation::setBook);
+            reservation.setReservationDate(reservationDate);
+            reservation.setStatus(status);
+            reservationRepository.save(reservation);
         });
         return "redirect:/admin/reservations";
     }
 
     @PostMapping("/admin/reservations/reject")
     public String rejectReservation(@RequestParam Long id) {
-        Optional<Reservation> reservationOpt = reservationRepository.findById(id);
-        if (reservationOpt.isEmpty()) {
-            return "redirect:/admin/reservations?error=notfound";
-        }
-        
-        Reservation reservation = reservationOpt.get();
-        
-        if (reservation.getStatus() != Reservation.Status.PENDING) {
-            return "redirect:/admin/reservations?error=notpending";
-        }
-        
-        reservation.setStatus(Reservation.Status.CANCELLED);
-        reservationRepository.save(reservation);
-        
-        return "redirect:/admin/reservations?success=rejected";
+        return reservationRepository.findById(id)
+            .filter(r -> r.getStatus() == Reservation.Status.PENDING)
+            .map(reservation -> {
+                reservation.setStatus(Reservation.Status.CANCELLED);
+                reservationRepository.save(reservation);
+                return "redirect:/admin/reservations?success=rejected";
+            })
+            .orElse("redirect:/admin/reservations?error=notfound");
     }
 
     @PostMapping("/admin/reservations/delete")
@@ -425,6 +426,12 @@ public class AdminController {
         fine.setReason(reason);
         fine.setPaymentStatus(paymentStatus);
         fineRepository.save(fine);
+        return "redirect:/admin/fines";
+    }
+
+    @PostMapping("/admin/fines/delete")
+    public String deleteFine(@RequestParam Long id) {
+        fineRepository.deleteById(id);
         return "redirect:/admin/fines";
     }
 

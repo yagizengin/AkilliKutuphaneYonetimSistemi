@@ -11,7 +11,7 @@ public class OverdueLoanScheduler {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    @Scheduled(cron = "* * * * * *")
+    @Scheduled(cron = "0 0 0 * * *")
     public void runDailyCheck() {
         System.out.println("Starting daily overdue check.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         jdbcTemplate.execute("SELECT daily_overdue_check()");

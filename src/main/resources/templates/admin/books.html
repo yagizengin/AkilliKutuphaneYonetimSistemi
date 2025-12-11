@@ -173,6 +173,7 @@
                                                             <input class="form-control form-control-sm" style="max-width:90px;" type="number" name="availableCopies" min="0" th:value="${b.availableCopies}" required>
                                                         </div>
                                                     </div>
+                                                </form>
                                             </td>
                                             <td>
                                                 <select class="form-control form-control-sm" name="authorId">
@@ -192,8 +193,10 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex" style="gap:4px;">
-                                                    <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-save"></i></button>
-                                                </form>
+                                                    <form class="inline-form" method="post" action="/admin/books/update" style="flex: 1;">
+                                                        <input type="hidden" name="id" th:value="${b.id}">
+                                                        <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-save"></i></button>
+                                                    </form>
                                                     <form method="post" action="/admin/books/delete" onsubmit="return confirm('Silmek istediğinize emin misiniz?');">
                                                         <input type="hidden" name="id" th:value="${b.id}">
                                                         <button class="btn btn-sm btn-danger" type="submit"><i class="fas fa-trash"></i></button>

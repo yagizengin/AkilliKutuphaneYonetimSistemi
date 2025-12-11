@@ -82,20 +82,20 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest registerRequest) {
-        if (registerRequest.getFullName() == null || registerRequest.getFullName().trim().isEmpty()) {
-            return ResponseEntity.status(400).body(Map.of("error", "Ad soyad gereklidir."));
+        if (registerRequest.getFullName() == null || registerRequest.getFullName().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ad soyad gereklidir."));
         }
         
-        if (registerRequest.getEmail() == null || registerRequest.getEmail().trim().isEmpty()) {
-            return ResponseEntity.status(400).body(Map.of("error", "Email gereklidir."));
+        if (registerRequest.getEmail() == null || registerRequest.getEmail().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email gereklidir."));
         }
         
         if (registerRequest.getPassword() == null || registerRequest.getPassword().length() < 6) {
-            return ResponseEntity.status(400).body(Map.of("error", "Parola en az 6 karakter olmalıdır."));
+            return ResponseEntity.badRequest().body(Map.of("error", "Parola en az 6 karakter olmalıdır."));
         }
         
         if (!registerRequest.getPassword().equals(registerRequest.getPasswordConfirm())) {
-            return ResponseEntity.status(400).body(Map.of("error", "Parolalar eşleşmiyor."));
+            return ResponseEntity.badRequest().body(Map.of("error", "Parolalar eşleşmiyor."));
         }
         
         if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
@@ -106,7 +106,8 @@ public class AuthController {
         newUser.setEmail(registerRequest.getEmail().trim().toLowerCase());
         newUser.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         newUser.setFullName(registerRequest.getFullName().trim());
-        newUser.setPhone(registerRequest.getPhone() != null ? registerRequest.getPhone().trim() : null);
+        newUser.setPhone(registerRequest.getPhone() != null && !registerRequest.getPhone().isBlank() 
+            ? registerRequest.getPhone().trim() : null);
         newUser.setRole(User.Role.MEMBER);
         newUser.setAccountStatus(User.AccountStatus.ACTIVE);
         
