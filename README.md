@@ -43,7 +43,8 @@ Modern ve kullanıcı dostu bir kütüphane yönetim sistemi. Bu proje ile küt�
 ### Database
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 
-### Build Tool![Maven](https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apache-maven&logoColor=white)
+### Build Tool
+![Maven](https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apache-maven&logoColor=white)
 
 ## Gereksinimler
 - **Java JDK 17** veya üzeri
